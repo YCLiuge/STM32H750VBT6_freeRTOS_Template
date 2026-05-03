@@ -1,4 +1,4 @@
-# STM32H750VBT6 FreeRTOS 快速开发模板
+﻿# STM32H750VBT6 FreeRTOS 快速开发模板
 
 ## 1. 项目概述
 
@@ -12,6 +12,7 @@
 - OLED / LCD 双显示支持（编译开关切换）
 - OV2640 摄像头 DCMI 采集（USB CDC 实时验证）
 - SD 卡 + FatFs 文件系统（异步挂载，USB CDC CLI 操控）
+- QSPI Flash W25Q64 + LittleFS 文件系统（CLI 操控）
 - 系统健康监控（堆栈水位、FreeRTOS 运行时统计）
 
 **架构分层：**
@@ -97,6 +98,7 @@ BSP   (CubeMX 生成的外设初始化)
 | `app_rtos_hooks.c` | FreeRTOS Hook 覆盖（栈溢出/内存耗尽→OLED 报错、运行时统计） |
 | `app_camera.c` | OV2640 摄像头服务：初始化/快照/连续捕获/hex dump/像素采样/图像统计 |
 | `app_sd.c` | SD 卡服务：异步挂载/卸载/列目录/读文件/卡信息（FatFs 封装） |
+| `app_qspi.c` | QSPI Flash 服务：W25Q64 检测/LittleFS 挂载/格式化/文件浏览 |
 | `bsp_sd.c` | BSP SD 封装层：`HAL_SD_*` → `BSP_SD_*` 标准接口 + `MX_FATFS_Init()` 提供 |
 | `display_service.c` | 显示抽象层：编译开关选择 OLED 或 LCD |
 | `lcd_st7789.c` | ST7789 LCD 驱动（2100+ 行） |
@@ -266,6 +268,21 @@ BSP   (CubeMX 生成的外设初始化)
 | **Camera Buffer 内存** | 当前方案：`CameraBuffer` 随 `.ANY` 放置在 AXI SRAM 中<br>AXI SRAM 在 Cortex-M7 默认 non-cacheable，DMA 写入安全<br>*（如需正式启用 Cache 需配置 MPU 子区域隔离）* |
 | **硬件引脚** | SCCB: PB8=SCL, PB9=SDA（GPIO 模拟）<br>PWDN: PD14 |
 
+
+### 4.11 QSPI Flash 模块（W25Q64 + LittleFS）
+
+| 步骤 | 操作 |
+|------|------|
+| **CubeMX** | **Connectivity** -> **QUADSPI**: Clock Prescaler=2 (60MHz), Flash Size=23 (8MB) |
+| | **NVIC**: QUADSPI Global Interrupt: Enabled, Priority: 5 |
+| | GPIO: PB2=CLK, PB6=NCS, PD11=IO0, PD12=IO1, PE2=IO2, PD13=IO3 |
+| | main.c: ensure MX_QUADSPI_Init() is uncommented |
+| **文件** | w25q64.c/h, lfs.c/h (v2.11.3 BSD-3), lfs_util.c/h, lfs_port.c/h, app_qspi.c/h |
+| **Keil** | FatFs group: lfs.c, lfs_util.c, lfs_port.c; User group: app_qspi.c; Core group: w25q64.c |
+| **代码** | app.h: 11 AppQSPI_*() APIs; app_console.c: flash CLI (7 subcommands) |
+| **分区** | First 4MB (0x90000000): XIP code; Last 4MB: LittleFS data |
+| **首次使用** | flash init -> flash format -> flash mount -> flash ls |
+
 ### 4.9 VSWR 驻波比模块（可选，未接入运行时）
 
 | 步骤 | 操作 |
@@ -388,6 +405,19 @@ app_xxx.c → app_xxx.h（兼容包装头）→ app.h（统一 API 中心）
 | `sd info` | 显示卡容量/类型/剩余空间 |
 | `sd dir` | 列出根目录文件 |
 | `sd cat <file>` | 读取文本文件内容（最多 2KB） |
+| `flash` | QSPI Flash 子命令（如下） |
+
+**QSPI Flash 子命令：**
+
+| 子命令 | 功能 |
+|--------|------|
+| `flash init` | 检测 W25Q64（读 JEDEC ID） |
+| `flash info` | 显示容量/FS 状态/已用空间 |
+| `flash format` | 擦除并创建 LittleFS |
+| `flash mount` | 挂载 LittleFS |
+| `flash umount` | 卸载 LittleFS |
+| `flash ls` | 列出根目录文件 |
+| `flash cat <file>` | 读取文本文件内容（最多 2KB） |
 
 ---
 

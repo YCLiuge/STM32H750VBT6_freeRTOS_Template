@@ -169,6 +169,8 @@ bool AppQSPI_Mount(void);
 void AppQSPI_Umount(void);
 bool AppQSPI_IsMounted(void);
 bool AppQSPI_Format(void);
+const char* AppQSPI_GetName(void);
+uint32_t AppQSPI_ReadID(void);
 size_t AppQSPI_ListDir(char *buf, size_t buf_len);
 size_t AppQSPI_ReadFile(char *buf, size_t buf_len, const char *path, uint32_t max_bytes);
 size_t AppQSPI_BuildInfo(char *buf, size_t buf_len);

@@ -7,6 +7,7 @@ extern "C" {
 
 #include "main.h"
 #include "quadspi.h"
+#include <stdbool.h>
 
 #define W25Q64_SECTOR_SIZE      4096U
 #define W25Q64_BLOCK_SIZE        65536U

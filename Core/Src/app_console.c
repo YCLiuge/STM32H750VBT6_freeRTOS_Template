@@ -868,12 +868,11 @@ static BaseType_t CLI_FlashCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
 
   if ((subcmd_len == 4) && (strncmp(subcmd, "init", 4) == 0))
   {
-    if (AppQSPI_Init())
-    {
-      uint32_t id = W25Q64_ReadID();
-      (void)snprintf(pcWriteBuffer, xWriteBufferLen,
-          "Flash ID: 0x%06lX (%s) - OK\r\n",
-          (unsigned long)id, W25Q64_GetName());
+      if (AppQSPI_Init())
+      {
+        (void)snprintf(pcWriteBuffer, xWriteBufferLen,
+            "Flash ID: 0x%06lX (%s) - OK\r\n",
+            (unsigned long)AppQSPI_ReadID(), AppQSPI_GetName());
     }
     else
     {

@@ -128,14 +128,13 @@ int main(void)
   MX_DMA_Init();
   MX_DCMI_Init();
   MX_QUADSPI_Init();
-  //MX_SDMMC1_SD_Init();
+  MX_SDMMC1_SD_Init();
   MX_SPI4_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_ADC3_Init();
   MX_TIM2_Init();
-  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
   DisplayService_Init();
   HAL_ADCEx_Calibration_Start(&hadc1,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);

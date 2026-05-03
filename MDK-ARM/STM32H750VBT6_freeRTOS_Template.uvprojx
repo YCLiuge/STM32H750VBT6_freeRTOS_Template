@@ -501,6 +501,11 @@
               <FilePath>..\Core\Src\FreeRTOS_CLI.c</FilePath>
             </File>
             <File>
+              <FileName>bsp_sd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\bsp_sd.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/main.c</FilePath>
@@ -896,11 +901,6 @@
                   </Cads>
                 </FileArmAds>
               </FileOption>
-            </File>
-            <File>
-              <FileName>bsp_sd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\bsp_sd.c</FilePath>
             </File>
             <File>
               <FileName>spi.c</FileName>

@@ -7,6 +7,8 @@
 #include "lfs.h"
 #include "lfs_port.h"
 
+#define LFS_BLOCK_SIZE  4096U
+
 static lfs_t g_lfs;
 static bool  g_lfs_mounted = false;
 
@@ -148,6 +150,16 @@ size_t AppQSPI_ReadFile(char *buf, size_t buf_len, const char *path, uint32_t ma
   used = (br > 0) ? (size_t)br : 0U;
   if (used < buf_len) buf[used] = '\0';
   return used;
+}
+
+const char* AppQSPI_GetName(void)
+{
+  return W25Q64_GetName();
+}
+
+uint32_t AppQSPI_ReadID(void)
+{
+  return W25Q64_ReadID();
 }
 
 size_t AppQSPI_BuildInfo(char *buf, size_t buf_len)
