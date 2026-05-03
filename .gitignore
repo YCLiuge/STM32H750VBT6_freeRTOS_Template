@@ -1,0 +1,29 @@
+# Keil build outputs
+*.o
+*.d
+*.crf
+*.lst
+*.lnp
+*.axf
+*.htm
+*.dep
+*.iex
+*.map
+*.build_log.htm
+*.hex
+*.bin
+
+# Keil project user settings
+*.uvguix.*
+*.uvoptx
+*.uvguix.*
+
+# Temp and build directories
+temp/
+MDK-ARM/STM32H750VBT6_VSWR_Analyser/
+MDK-ARM/RTE/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+*.swp

@@ -1,0 +1,36 @@
+; *************************************************************
+; *** Scatter-Loading Description File for STM32H750VBT6    ***
+; *** Flash + DTCM + AXI SRAM + DMA Non-Cacheable Region    ***
+; *************************************************************
+
+LR_IROM1 0x08000000 0x00020000  {    ; 128KB internal Flash
+
+  ER_IROM1 0x08000000 0x00020000  {  ; code/const execute in Flash
+    *.o (RESET, +First)
+    *(InRoot$$Sections)
+    .ANY (+RO)
+    .ANY (+XO)
+  }
+
+  ; DTCM RAM 128KB @ 0x20000000
+  ; 建议只放启动栈/堆以及以后你明确指定的高速变量
+  RW_DTCM 0x20000000 0x00020000  {
+    startup_stm32h750xx.o (STACK, HEAP)
+    * (dtcm_data)
+    * (dtcm_bss)
+  }
+
+  ; AXI SRAM 512KB @ 0x24000000
+  ; 普通全局变量、FreeRTOS heap、一般 RW/ZI 数据放这里
+  RW_AXI 0x24000000 0x00080000  {
+    .ANY (+RW +ZI)
+  }
+
+  ; D2 SRAM1 32KB pool @ 0x30000000
+  ; 与你 main.c 里的 MPU non-cacheable 32KB 区完全对应
+  RW_DMA 0x30000000 0x00008000  {
+    * (dma_buffer)
+    * (dma_buffer.*)
+  }
+
+}
