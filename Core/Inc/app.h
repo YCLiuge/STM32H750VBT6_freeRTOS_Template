@@ -161,6 +161,19 @@ size_t AppSD_ReadFile(char *buf, size_t buf_len, const char *path, uint32_t max_
 size_t AppSD_BuildInfo(char *buf, size_t buf_len);
 
 /* =========================
+ * app_qspi
+ * ========================= */
+bool AppQSPI_Init(void);
+bool AppQSPI_IsPresent(void);
+bool AppQSPI_Mount(void);
+void AppQSPI_Umount(void);
+bool AppQSPI_IsMounted(void);
+bool AppQSPI_Format(void);
+size_t AppQSPI_ListDir(char *buf, size_t buf_len);
+size_t AppQSPI_ReadFile(char *buf, size_t buf_len, const char *path, uint32_t max_bytes);
+size_t AppQSPI_BuildInfo(char *buf, size_t buf_len);
+
+/* =========================
  * app_console
  * ========================= */
 void AppConsole_Init(void);

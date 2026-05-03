@@ -421,6 +421,11 @@
               <FilePath>..\Core\Src\app_sd.c</FilePath>
             </File>
             <File>
+              <FileName>app_qspi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\app_qspi.c</FilePath>
+            </File>
+            <File>
               <FileName>app_init.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\app_init.c</FilePath>
@@ -469,6 +474,11 @@
               <FileName>sccb.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\sccb.c</FilePath>
+            </File>
+            <File>
+              <FileName>w25q64.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\w25q64.c</FilePath>
             </File>
             <File>
               <FileName>oled_spi_V0.2.c</FileName>
@@ -2192,6 +2202,21 @@
               <FileName>ffunicode.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\ffunicode.c</FilePath>
+            </File>
+            <File>
+              <FileName>lfs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\lfs.c</FilePath>
+            </File>
+            <File>
+              <FileName>lfs_util.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\lfs_util.c</FilePath>
+            </File>
+            <File>
+              <FileName>lfs_port.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\lfs_port.c</FilePath>
             </File>
           </Files>
         </Group>

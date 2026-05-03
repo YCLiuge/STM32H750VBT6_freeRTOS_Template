@@ -47,6 +47,7 @@ static BaseType_t CLI_AllCommand(char *pcWriteBuffer, size_t xWriteBufferLen, co
 static BaseType_t CLI_AdcCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t CLI_CameraCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t CLI_SdCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t CLI_FlashCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 
 static const CLI_Command_Definition_t xHelpCmd = {
   "help",
@@ -122,6 +123,20 @@ static const CLI_Command_Definition_t xSdCmd = {
   "  sd dir     - List root directory\r\n"
   "  sd cat <f> - Read and display text file content (max 2KB)\r\n",
   CLI_SdCommand,
+  -1
+};
+
+static const CLI_Command_Definition_t xFlashCmd = {
+  "flash",
+  "flash: QSPI Flash operations (W25Q64 + LittleFS)\r\n"
+  "  flash info    - Show flash ID, capacity, FS status\r\n"
+  "  flash init    - Detect W25Q64 (reads JEDEC ID)\r\n"
+  "  flash format  - Erase and format with LittleFS\r\n"
+  "  flash mount   - Mount LittleFS\r\n"
+  "  flash umount  - Unmount LittleFS\r\n"
+  "  flash ls      - List files in root directory\r\n"
+  "  flash cat <f> - Read and display text file (max 2KB)\r\n",
+  CLI_FlashCommand,
   -1
 };
 
@@ -350,6 +365,7 @@ static void AppConsole_RegisterCommands(void)
   (void)FreeRTOS_CLIRegisterCommand(&xAdcCmd);
   (void)FreeRTOS_CLIRegisterCommand(&xCameraCmd);
   (void)FreeRTOS_CLIRegisterCommand(&xSdCmd);
+  (void)FreeRTOS_CLIRegisterCommand(&xFlashCmd);
   g_cli_registered = true;
 }
 
@@ -832,5 +848,104 @@ static BaseType_t CLI_SdCommand(char *pcWriteBuffer, size_t xWriteBufferLen, con
 
   (void)snprintf(pcWriteBuffer, xWriteBufferLen,
       "Unknown sd command: %.*s\r\n", subcmd_len, subcmd);
+  return pdFALSE;
+}
+
+static BaseType_t CLI_FlashCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+  const char *subcmd;
+  BaseType_t subcmd_len = 0;
+
+  if ((pcWriteBuffer == NULL) || (xWriteBufferLen == 0U)) return pdFALSE;
+
+  subcmd = FreeRTOS_CLIGetParameter(pcCommandString, 1U, &subcmd_len);
+  if ((subcmd == NULL) || (subcmd_len == 0))
+  {
+    (void)snprintf(pcWriteBuffer, xWriteBufferLen,
+        "flash subcommands: init, info, format, mount, umount, ls, cat\r\n");
+    return pdFALSE;
+  }
+
+  if ((subcmd_len == 4) && (strncmp(subcmd, "init", 4) == 0))
+  {
+    if (AppQSPI_Init())
+    {
+      uint32_t id = W25Q64_ReadID();
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen,
+          "Flash ID: 0x%06lX (%s) - OK\r\n",
+          (unsigned long)id, W25Q64_GetName());
+    }
+    else
+    {
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen,
+          "Flash: NOT DETECTED (check wiring/power)\r\n");
+    }
+    return pdFALSE;
+  }
+
+  if ((subcmd_len == 4) && (strncmp(subcmd, "info", 4) == 0))
+  {
+    AppQSPI_BuildInfo(pcWriteBuffer, xWriteBufferLen);
+    return pdFALSE;
+  }
+
+  if ((subcmd_len == 5) && (strncmp(subcmd, "mount", 5) == 0))
+  {
+    if (AppQSPI_Mount())
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen, "Flash mounted (LittleFS).\r\n");
+    else
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen,
+          "Mount FAILED. Run 'flash init' first, then 'flash format' if first use.\r\n");
+    return pdFALSE;
+  }
+
+  if ((subcmd_len == 6) && (strncmp(subcmd, "umount", 6) == 0))
+  {
+    AppQSPI_Umount();
+    (void)snprintf(pcWriteBuffer, xWriteBufferLen, "Flash unmounted.\r\n");
+    return pdFALSE;
+  }
+
+  if ((subcmd_len == 6) && (strncmp(subcmd, "format", 6) == 0))
+  {
+    if (!AppQSPI_IsPresent())
+    {
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen, "Flash not detected.\r\n");
+      return pdFALSE;
+    }
+    if (AppQSPI_Format())
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen, "Flash formatted (LittleFS).\r\n");
+    else
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen, "Format FAILED.\r\n");
+    return pdFALSE;
+  }
+
+  if ((subcmd_len == 2) && (strncmp(subcmd, "ls", 2) == 0))
+  {
+    AppQSPI_ListDir(pcWriteBuffer, xWriteBufferLen);
+    return pdFALSE;
+  }
+
+  if ((subcmd_len == 3) && (strncmp(subcmd, "cat", 3) == 0))
+  {
+    const char *path;
+    BaseType_t path_len = 0;
+    path = FreeRTOS_CLIGetParameter(pcCommandString, 2U, &path_len);
+    if ((path == NULL) || (path_len == 0U))
+    {
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen, "Usage: flash cat <filename>\r\n");
+      return pdFALSE;
+    }
+    char filepath[128];
+    if ((size_t)path_len >= sizeof(filepath))
+    { (void)snprintf(pcWriteBuffer, xWriteBufferLen, "Path too long.\r\n"); return pdFALSE; }
+    memcpy(filepath, path, (size_t)path_len);
+    filepath[path_len] = '\0';
+    AppQSPI_ReadFile(pcWriteBuffer, xWriteBufferLen, filepath, 2048U);
+    return pdFALSE;
+  }
+
+  (void)snprintf(pcWriteBuffer, xWriteBufferLen,
+      "Unknown flash command: %.*s\r\n", subcmd_len, subcmd);
   return pdFALSE;
 }

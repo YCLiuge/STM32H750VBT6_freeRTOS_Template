@@ -127,8 +127,8 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_DCMI_Init();
-  //MX_QUADSPI_Init();
-  MX_SDMMC1_SD_Init();
+  MX_QUADSPI_Init();
+  //MX_SDMMC1_SD_Init();
   MX_SPI4_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
