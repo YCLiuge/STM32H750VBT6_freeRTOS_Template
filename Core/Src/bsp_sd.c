@@ -1,4 +1,11 @@
 #include "bsp_sd.h"
+#include "ff_gen_drv.h"
+#include "sd_diskio.h"
+
+void MX_FATFS_Init(void)
+{
+  FATFS_LinkDriver(&SD_Driver, "0:");
+}
 
 int32_t BSP_SD_Init(uint32_t Instance)
 {

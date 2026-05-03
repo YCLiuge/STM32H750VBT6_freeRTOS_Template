@@ -37,12 +37,14 @@
 #define SD_DEFAULT_BLOCK_SIZE 512
 
 /*
- * Depending on the usecase, the SD card initialization could be done at the
- * application level, if it is the case define the flag below to disable
- * the BSP_SD_Init() call in the SD_Initialize().
- */
 
+
+If defined, SD_initialize() skips BSP_SD_Init().
+Uncomment if application calls BSP_SD_Init() before f_mount().
+*/
+/*
 #define DISABLE_SD_INIT
+ */
 
 /* Private variables ---------------------------------------------------------*/
 /* Disk status */
@@ -96,10 +98,14 @@ DSTATUS SD_initialize(BYTE lun)
 {
   Stat = STA_NOINIT;
 
+#ifndef DISABLE_SD_INIT
   if(BSP_SD_Init(0) == BSP_ERROR_NONE)
   {
     Stat = SD_CheckStatus(lun);
   }
+#else
+  Stat = SD_CheckStatus(lun);
+#endif
 
   return Stat;
 }
@@ -125,16 +131,20 @@ DSTATUS SD_status(BYTE lun)
 DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 {
   DRESULT res = RES_ERROR;
+  uint32_t timeout = 5000U;
 
   if(BSP_SD_ReadBlocks(0, (uint32_t*)buff,
                        (uint32_t) (sector),
                        count) == BSP_ERROR_NONE)
   {
-    /* wait until the read operation is finished */
-    while(BSP_SD_GetCardState(0)!= BSP_ERROR_NONE)
+    while((BSP_SD_GetCardState(0) != BSP_ERROR_NONE) && (timeout > 0U))
     {
+      timeout--;
     }
-    res = RES_OK;
+    if (timeout > 0U)
+    {
+      res = RES_OK;
+    }
   }
 
   return res;
@@ -152,16 +162,20 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 {
   DRESULT res = RES_ERROR;
+  uint32_t timeout = 5000U;
 
   if(BSP_SD_WriteBlocks(0, (uint32_t*)buff,
                         (uint32_t)(sector),
                         count) == BSP_ERROR_NONE)
   {
-	/* wait until the Write operation is finished */
-    while(BSP_SD_GetCardState(0) != BSP_ERROR_NONE)
+    while((BSP_SD_GetCardState(0) != BSP_ERROR_NONE) && (timeout > 0U))
     {
+      timeout--;
     }
-    res = RES_OK;
+    if (timeout > 0U)
+    {
+      res = RES_OK;
+    }
   }
 
   return res;

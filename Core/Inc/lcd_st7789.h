@@ -13,7 +13,7 @@ extern "C" {
 #define LCD_Width     240
 #define LCD_Height    280
 
-#define RADIAN(angle)  ((angle==0)?0:(3.14159*angle/180))
+#define RADIAN(angle)  ((angle==0)?0:(3.14159f*angle/180))
 #define MAX(x,y)       ((x)>(y)? (x):(y))
 #define MIN(x,y)       ((x)<(y)? (x):(y))
 #define SWAP(x, y)     (y) = (x) + (y); (x) = (y) - (x); (y) = (y) - (x);

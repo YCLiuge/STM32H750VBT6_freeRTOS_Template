@@ -11,6 +11,7 @@
 - USB CDC 虚拟串口 CLI 命令行交互（10 条诊断命令）
 - OLED / LCD 双显示支持（编译开关切换）
 - OV2640 摄像头 DCMI 采集（USB CDC 实时验证）
+- SD 卡 + FatFs 文件系统（异步挂载，USB CDC CLI 操控）
 - 系统健康监控（堆栈水位、FreeRTOS 运行时统计）
 
 **架构分层：**
@@ -67,7 +68,7 @@ BSP   (CubeMX 生成的外设初始化)
 ├── Middlewares/                      ← FreeRTOS Kernel + STM32 USB Device Library
 ├── USB_DEVICE/                       ← USB CDC 描述符与接口
 │   └── App/usbd_cdc_if.c/h          ← CDC 收发接口（USER CODE 区增强）
-├── FatFs/                            ← FatFs R0.14b 文件系统 + SD 卡驱动
+├── FatFs/                            ← FatFs R0.14b 文件系统 + SD 卡驱动（与 CubeMX 解耦，独立模块）
 ├── MDK-ARM/                          ← Keil uVision 工程 + 散列文件
 │   ├── STM32H750VBT6_freeRTOS_Template.uvprojx
 │   └── STM32H750VBT6_freeRTOS_Template.sct  ← 链接脚本（内存布局）
@@ -95,6 +96,8 @@ BSP   (CubeMX 生成的外设初始化)
 | `app_init.c` | 启动编排：USB/ADC 初始化、首次快照、自删除 |
 | `app_rtos_hooks.c` | FreeRTOS Hook 覆盖（栈溢出/内存耗尽→OLED 报错、运行时统计） |
 | `app_camera.c` | OV2640 摄像头服务：初始化/快照/连续捕获/hex dump/像素采样/图像统计 |
+| `app_sd.c` | SD 卡服务：异步挂载/卸载/列目录/读文件/卡信息（FatFs 封装） |
+| `bsp_sd.c` | BSP SD 封装层：`HAL_SD_*` → `BSP_SD_*` 标准接口 + `MX_FATFS_Init()` 提供 |
 | `display_service.c` | 显示抽象层：编译开关选择 OLED 或 LCD |
 | `lcd_st7789.c` | ST7789 LCD 驱动（2100+ 行） |
 | `lcd_model.c` | LCD 图形测试函数 |
@@ -273,16 +276,28 @@ BSP   (CubeMX 生成的外设初始化)
 | **Keil** | Application/User 组中添加 `VSWR.c` |
 | **代码** | `main.c` USER CODE 2 取消 `VSWR_Meter_Init()` 注释 |
 
-### 4.10 FatFs + SD 卡模块（可选，未接入运行时）
+### 4.10 FatFs + SD 卡模块（通过 USB CDC CLI 操控，异步挂载）
 
 | 步骤 | 操作 |
 |------|------|
 | **CubeMX** | Pinout → **Connectivity** → **SDMMC1**: SD 4-bit Wide Bus, ClockDiv=6 |
-| | **Middleware** → **FATFS**: Mode: **SD Card**, 其他默认 |
-| **文件** | `Core/Src/sd_diskio.c`、`Core/Src/diskio.c`、`FatFs/` 目录下所有文件 |
-| **Keil** | 勾选 CubeMX 管理的 FatFs 文件组 |
-| **代码** | `main.c` 取消 `MX_SDMMC1_SD_Init()` 注释 |
-| **注意** | 未插 SD 卡时 `HAL_SD_Init()` 可能超时阻塞，建议保持注释 |
+| | **NVIC** → SDMMC1 global interrupt: ☑, Priority: 5 |
+| | **FATFS Middleware**: ☐ **保持 Disabled**（不依赖 CubeMX 生成 FatFs 文件） |
+| | `main.c` 生成后：确保 `MX_SDMMC1_SD_Init()` 保持注释 |
+| **文件** | `Core/Src/app_sd.c`、`Core/Inc/app_sd.h`（SD 服务模块） |
+| | `Core/Src/bsp_sd.c`、`Core/Inc/bsp_sd.h`（BSP SD 封装 + `MX_FATFS_Init()`） |
+| | `Core/Src/sd_diskio.c`、`Core/Inc/sd_diskio.h`（FatFs → BSP 桥接，含超时保护） |
+| | `Core/Src/diskio.c`、`Core/Src/ff.c`、`Core/Src/ff_gen_drv.c`、`Core/Src/ffunicode.c`（FatFs 核心） |
+| | `Core/Inc/ff.h`、`Core/Inc/ff_gen_drv.h`、`Core/Inc/ffconf.h`（FatFs 头文件） |
+| **Keil** | 新建 **FatFs** 组，添加：`ff.c`、`ff_gen_drv.c`、`diskio.c`、`sd_diskio.c`、`ffunicode.c` |
+| | Application/User 组添加：`app_sd.c`、`bsp_sd.c` |
+| | CubeMX 重新生成后删除 Keil 中自动添加的 3 个无效 FatFs 组（`Application/User/FatFs/App`、`Target`、`Middlewares/FatFs`） |
+| **代码** | `app.h` 添加 `AppSD_MountAsync()` 等 7 个 API 声明 |
+| | `app_console.c` 注册 `sd` CLI 命令（5 个子命令） |
+| | `bsp_sd.c` 提供 `MX_FATFS_Init()`（CubeMX 在 `main.c` 生成区会调用此函数） |
+| **架构** | `sd mount` → 异步任务 `SD_Mount` → `f_mount()` → `disk_initialize()` → `SD_initialize()` → `BSP_SD_Init()` → `HAL_SD_Init()` |
+| | 仅在上电后首次挂载时初始化硬件，后续直接复用；不阻塞 CLI 主线程 |
+| **注意** | `sd_diskio.c` 中 `SD_read/write` 已有 5000 次超时退出，防止无卡时死循环<br>`DISABLE_SD_INIT` 宏已注释（由 FatFs 自行调用硬件初始化） |
 
 ---
 
@@ -362,6 +377,17 @@ app_xxx.c → app_xxx.h（兼容包装头）→ app.h（统一 API 中心）
 | `camera hex [offset] [len]` | 摄像头缓冲区 hex dump |
 | `camera pixels x y [w] [h]` | 采样指定区域像素 RGB565 值 |
 | `camera verify` | 全图统计（min/max/avg/zero%/sat% + 中心 5x5） |
+| `sd` | SD 卡子命令（如下，异步挂载） |
+
+**SD 卡子命令：**
+
+| 子命令 | 功能 |
+|--------|------|
+| `sd mount` | 后台初始化 SD 卡 + 挂载 FATFS（不阻塞 CLI） |
+| `sd umount` | 卸载 FATFS |
+| `sd info` | 显示卡容量/类型/剩余空间 |
+| `sd dir` | 列出根目录文件 |
+| `sd cat <file>` | 读取文本文件内容（最多 2KB） |
 
 ---
 

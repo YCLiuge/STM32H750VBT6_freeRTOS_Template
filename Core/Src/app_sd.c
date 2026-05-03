@@ -6,8 +6,13 @@
 #include "ff.h"
 #include "bsp_sd.h"
 
+#define SD_MOUNT_TASK_STACK 1024U
+
 static FATFS g_sd_fs;
 static bool  g_sd_mounted = false;
+static volatile bool g_sd_mount_pending = false;
+
+static void AppSD_MountTask(void *argument);
 
 bool AppSD_Mount(void)
 {
@@ -16,11 +21,6 @@ bool AppSD_Mount(void)
   if (g_sd_mounted)
   {
     return true;
-  }
-
-  if (BSP_SD_Init(0) != BSP_ERROR_NONE)
-  {
-    return false;
   }
 
   memset(&g_sd_fs, 0, sizeof(g_sd_fs));
@@ -32,6 +32,48 @@ bool AppSD_Mount(void)
 
   g_sd_mounted = true;
   return true;
+}
+
+void AppSD_MountAsync(void)
+{
+  if (g_sd_mounted || g_sd_mount_pending)
+  {
+    return;
+  }
+
+  g_sd_mount_pending = true;
+
+  (void)xTaskCreate(AppSD_MountTask,
+                    "SD_Mount",
+                    SD_MOUNT_TASK_STACK,
+                    NULL,
+                    tskIDLE_PRIORITY + 3U,
+                    NULL);
+}
+
+static void AppSD_MountTask(void *argument)
+{
+  FRESULT res;
+
+  (void)argument;
+
+  USBVcom_printf("[SD] Mounting, please wait...\r\n");
+
+  memset(&g_sd_fs, 0, sizeof(g_sd_fs));
+  res = f_mount(&g_sd_fs, "0:", 1);
+
+  if (res == FR_OK)
+  {
+    g_sd_mounted = true;
+    USBVcom_printf("[SD] Mount OK!\r\n");
+  }
+  else
+  {
+    USBVcom_printf("[SD] Mount FAILED (err=%d). Check card inserted, FAT32/exFAT.\r\n", (int)res);
+  }
+
+  g_sd_mount_pending = false;
+  vTaskDelete(NULL);
 }
 
 void AppSD_Umount(void)

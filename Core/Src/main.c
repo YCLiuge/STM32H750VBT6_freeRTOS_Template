@@ -135,6 +135,7 @@ int main(void)
   MX_ADC2_Init();
   MX_ADC3_Init();
   MX_TIM2_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
   DisplayService_Init();
   HAL_ADCEx_Calibration_Start(&hadc1,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);

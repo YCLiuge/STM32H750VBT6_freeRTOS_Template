@@ -153,6 +153,7 @@ void AppCamera_BuildVerify(char *buf, size_t buf_len);
  * app_sd
  * ========================= */
 bool AppSD_Mount(void);
+void AppSD_MountAsync(void);
 void AppSD_Umount(void);
 bool AppSD_IsMounted(void);
 size_t AppSD_ListDir(char *buf, size_t buf_len, const char *path);

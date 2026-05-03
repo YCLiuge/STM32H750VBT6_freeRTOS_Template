@@ -770,14 +770,15 @@ static BaseType_t CLI_SdCommand(char *pcWriteBuffer, size_t xWriteBufferLen, con
 
   if ((subcmd_len == 5) && (strncmp(subcmd, "mount", 5) == 0))
   {
-    if (AppSD_Mount())
+    if (AppSD_IsMounted())
     {
-      (void)snprintf(pcWriteBuffer, xWriteBufferLen, "SD mounted OK.\r\n");
+      (void)snprintf(pcWriteBuffer, xWriteBufferLen, "SD already mounted.\r\n");
     }
     else
     {
+      AppSD_MountAsync();
       (void)snprintf(pcWriteBuffer, xWriteBufferLen,
-          "SD mount FAILED. Check card inserted, formatted FAT32/exFAT.\r\n");
+          "SD mount task started. Wait for [SD] message...\r\n");
     }
     return pdFALSE;
   }

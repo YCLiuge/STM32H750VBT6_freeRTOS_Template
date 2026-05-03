@@ -11,6 +11,8 @@ extern "C" {
 #define BSP_ERROR_NONE     0
 #define BSP_ERROR_PERIPH   (-1)
 
+typedef HAL_SD_CardInfoTypeDef BSP_SD_CardInfo;
+
 int32_t BSP_SD_Init(uint32_t Instance);
 int32_t BSP_SD_GetCardState(uint32_t Instance);
 int32_t BSP_SD_ReadBlocks(uint32_t Instance, uint32_t *pData, uint32_t BlockAddr, uint32_t NumOfBlocks);
